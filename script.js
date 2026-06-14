@@ -2,20 +2,20 @@
 /* ===================================================================
    NAVIGATION — hamburger, scroll spy, active link, back-to-top
    =================================================================== */
-(function() {
+(function () {
   const hamburger = document.getElementById('hamburgerBtn');
   const mobileNav = document.getElementById('mobileNav');
   const navLinks = document.querySelectorAll('.nav-links a');
   const sections = document.querySelectorAll('section[id], footer[id]');
   const backToTop = document.getElementById('back-to-top');
 
-  hamburger.addEventListener('click', function() {
+  hamburger.addEventListener('click', function () {
     this.classList.toggle('open');
     mobileNav.classList.toggle('open');
     this.setAttribute('aria-expanded', this.classList.contains('open'));
   });
 
-  window.closeMobileNav = function() {
+  window.closeMobileNav = function () {
     hamburger.classList.remove('open');
     mobileNav.classList.remove('open');
     hamburger.setAttribute('aria-expanded', 'false');
@@ -23,195 +23,229 @@
 
   // Scroll spy
   const observerOptions = { rootMargin: '-40% 0px -55% 0px' };
-  const scrollObserver = new IntersectionObserver(function(entries) {
-    entries.forEach(function(entry) {
+  const scrollObserver = new IntersectionObserver(function (entries) {
+    entries.forEach(function (entry) {
       if (entry.isIntersecting) {
         const id = entry.target.id;
-        navLinks.forEach(function(link) {
+        navLinks.forEach(function (link) {
           link.classList.remove('active');
           if (link.getAttribute('href') === '#' + id) link.classList.add('active');
         });
       }
     });
   }, observerOptions);
-  sections.forEach(function(sec) { scrollObserver.observe(sec); });
+  sections.forEach(function (sec) { scrollObserver.observe(sec); });
 
   // Back to top
-  window.addEventListener('scroll', function() {
+  window.addEventListener('scroll', function () {
     if (window.scrollY > 400) backToTop.classList.add('visible');
     else backToTop.classList.remove('visible');
   });
-  backToTop.addEventListener('click', function() {
+  backToTop.addEventListener('click', function () {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
 
   // Reveal on scroll
   const reveals = document.querySelectorAll('.reveal');
-  const revealObserver = new IntersectionObserver(function(entries) {
-    entries.forEach(function(entry) {
+  const revealObserver = new IntersectionObserver(function (entries) {
+    entries.forEach(function (entry) {
       if (entry.isIntersecting) {
         entry.target.classList.add('visible');
         revealObserver.unobserve(entry.target);
       }
     });
   }, { threshold: 0.1 });
-  reveals.forEach(function(el) { revealObserver.observe(el); });
+  reveals.forEach(function (el) { revealObserver.observe(el); });
 })();
 
 /* ===================================================================
-   DEMO 1 — SUPPLY CHAIN FLOW
+   DEMO 1 — DEPOT CONSOLIDATION CALCULATOR
    =================================================================== */
-(function() {
-  const nodeData = [
-    { title: 'Supplier', role: 'Provides raw materials and components', activities: 'Mining, farming, manufacturing parts', example: 'Samsung SDI (battery supplier)' },
-    { title: 'Manufacturer', role: 'Converts raw materials into finished goods', activities: 'Assembly, production, quality control', example: 'Samsung Electronics' },
-    { title: 'Distributor', role: 'Stores and moves goods between manufacturers and retailers', activities: 'Warehousing, bulk breaking, sorting', example: 'DHL Distribution' },
-    { title: 'Retailer', role: 'Sells directly to end customers', activities: 'Display, promotions, customer service', example: 'Lotte Mart' },
-    { title: 'Customer', role: 'Purchases and uses the final product', activities: 'Purchase, feedback, returns', example: 'End Consumer' }
-  ];
+(function () {
+  var depotSlider = document.getElementById('depotCount');
+  var hubSlider = document.getElementById('hubCount');
 
-  const nodes = document.querySelectorAll('.sc-node');
-  const infoPanel = document.getElementById('scInfoPanel');
-  const infoTitle = document.getElementById('scInfoTitle');
-  const infoRole = document.getElementById('scInfoRole');
-  const infoActivities = document.getElementById('scInfoActivities');
-  const infoExample = document.getElementById('scInfoExample');
-  const playBtn = document.getElementById('scPlayBtn');
-  const resetBtn = document.getElementById('scResetBtn');
-  const speedSlider = document.getElementById('scSpeed');
-  const speedLabel = document.getElementById('scSpeedLabel');
-  let animTimer = null;
+  var BASE_STORAGE = 1000000;
+  var BASE_TRANSPORT = 300000;
+  var BASE_DELIVERY = 200000;
 
-  function showNodeInfo(idx) {
-    const d = nodeData[idx];
-    infoTitle.textContent = d.title;
-    infoRole.innerHTML = '<strong>Role:</strong> ' + d.role;
-    infoActivities.innerHTML = '<strong>Key Activities:</strong> ' + d.activities;
-    infoExample.innerHTML = '<strong>Example:</strong> ' + d.example;
-    infoPanel.classList.add('visible');
-    nodes.forEach(function(n) { n.classList.remove('active'); });
-    nodes[idx].classList.add('active');
+  function calculate() {
+    var depots = +depotSlider.value;
+    var hubs = +hubSlider.value;
+
+    document.getElementById('depotCountVal').textContent = depots + ' Depots';
+    document.getElementById('hubCountVal').textContent = hubs + ' Hub' + (hubs > 1 ? 's' : '');
+    document.getElementById('beforeLocations').textContent = depots + ' Depots';
+    document.getElementById('afterLocations').textContent = hubs + ' Hub' + (hubs > 1 ? 's' : '');
+
+    // Square Root Law: new inventory ratio
+    var sqrtRatio = Math.sqrt(hubs / depots);
+    var invPct = Math.round(sqrtRatio * 100);
+    document.getElementById('afterInventory').textContent = invPct + '% of original';
+
+    // Formula display
+    document.getElementById('depotFormula').innerHTML =
+      '= 100% × √(' + hubs + ' ÷ ' + depots + ') = 100% × ' +
+      sqrtRatio.toFixed(2) + ' = <strong>' + invPct + '% of original inventory</strong>';
+
+    // Costs
+    var afterStorage = Math.round(BASE_STORAGE * sqrtRatio);
+    var afterTransport = Math.round(BASE_TRANSPORT * (1 + (1 - sqrtRatio) * 1.2));
+    var afterDelivery = Math.round(BASE_DELIVERY * (0.5 + sqrtRatio * 0.4));
+
+    var beforeTotal = BASE_STORAGE + BASE_TRANSPORT + BASE_DELIVERY;
+    var afterTotal = afterStorage + afterTransport + afterDelivery;
+    var savings = beforeTotal - afterTotal;
+
+    document.getElementById('beforeStorage').textContent = '$' + BASE_STORAGE.toLocaleString();
+    document.getElementById('beforeTransport').textContent = '$' + BASE_TRANSPORT.toLocaleString();
+    document.getElementById('beforeDelivery').textContent = '$' + BASE_DELIVERY.toLocaleString();
+    document.getElementById('beforeTotal').textContent = '$' + beforeTotal.toLocaleString();
+
+    document.getElementById('afterStorage').textContent = '$' + afterStorage.toLocaleString();
+    document.getElementById('afterTransport').textContent = '$' + afterTransport.toLocaleString();
+    document.getElementById('afterDelivery').textContent = '$' + afterDelivery.toLocaleString();
+    document.getElementById('afterTotal').textContent = '$' + afterTotal.toLocaleString();
+
+    var badge = document.getElementById('depotSavingsBadge');
+    var savingsEl = document.getElementById('depotSavingsVal');
+    if (savings > 0) {
+      savingsEl.textContent = '$' + savings.toLocaleString();
+      badge.style.background = 'var(--color-success)';
+    } else {
+      savingsEl.textContent = '-$' + Math.abs(savings).toLocaleString();
+      badge.style.background = '#e74c3c';
+    }
   }
 
-  nodes.forEach(function(node, i) {
-    node.addEventListener('click', function() { showNodeInfo(i); });
-    node.addEventListener('keypress', function(e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); showNodeInfo(i); } });
-  });
-
-  speedSlider.addEventListener('input', function() {
-    var labels = ['Slow', 'Normal', 'Fast'];
-    speedLabel.textContent = labels[this.value - 1];
-  });
-
-  playBtn.addEventListener('click', function() {
-    var speeds = [1200, 700, 350];
-    var speed = speeds[speedSlider.value - 1];
-    var current = 0;
-    nodes.forEach(function(n) { n.classList.remove('highlight'); });
-    clearInterval(animTimer);
-    animTimer = setInterval(function() {
-      nodes.forEach(function(n) { n.classList.remove('highlight'); });
-      if (current < nodes.length) {
-        nodes[current].classList.add('highlight');
-        showNodeInfo(current);
-        current++;
-      } else {
-        clearInterval(animTimer);
-      }
-    }, speed);
-  });
-
-  resetBtn.addEventListener('click', function() {
-    clearInterval(animTimer);
-    nodes.forEach(function(n) { n.classList.remove('highlight', 'active'); });
-    infoPanel.classList.remove('visible');
-  });
+  depotSlider.addEventListener('input', calculate);
+  hubSlider.addEventListener('input', calculate);
+  calculate();
 })();
 
 /* ===================================================================
-   DEMO 2 — TRANSPORTATION MODE COMPARISON
+   DEMO 2 — STAR WARS SYSTEMS THINKING MAP
    =================================================================== */
-(function() {
-  var modes = [
-    { name: 'Road', icon: '🚛', data: { cost: 3, speed: 4, reliability: 4, capacity: 3, eco: 2 }, best: 'Best for local delivery' },
-    { name: 'Rail', icon: '🚂', data: { cost: 4, speed: 3, reliability: 4, capacity: 5, eco: 4 }, best: 'Best for bulk freight' },
-    { name: 'Sea',  icon: '🚢', data: { cost: 5, speed: 2, reliability: 3, capacity: 5, eco: 3 }, best: 'Best for international bulk' },
-    { name: 'Air',  icon: '✈️', data: { cost: 1, speed: 5, reliability: 5, capacity: 2, eco: 1 }, best: 'Best for urgent shipments' }
+(function () {
+  var systems = [
+    {
+      id: 'transport', icon: '🚀', label: 'Transportation\nSystem',
+      x: 260, y: 60, color: '#0A2D6E',
+      starwars: 'AT-AT walkers, Star Destroyers, and Snowspeeders form the core transportation infrastructure of the Battle of Hoth — moving troops, equipment, and resources across the planet.',
+      business: 'In real organizations, this is the logistics and fleet management system — managing vehicles, aircraft, and vessels to move goods and people efficiently.',
+      challenge: 'The Empire\'s AT-AT walkers were slow and vulnerable to cable attacks, showing how transportation bottlenecks can undermine even the most powerful operations.'
+    },
+    {
+      id: 'comms', icon: '📡', label: 'Communication\nSystem',
+      x: 80, y: 170, color: '#1A4FA0',
+      starwars: 'The Empire used probe droids and command centers on Executor to relay battlefield intelligence. The Rebels used an energy shield and a command center on Hoth.',
+      business: 'This mirrors corporate IT and communication infrastructure — ERP systems, real-time data, and command centers that coordinate decisions across an organization.',
+      challenge: 'The Rebels successfully delayed the Empire by maintaining their shield generator — showing how disrupting communications can halt even large-scale operations.'
+    },
+    {
+      id: 'labor', icon: '👥', label: 'Labor &\nPersonnel System',
+      x: 440, y: 170, color: '#2176FF',
+      starwars: 'Stormtroopers, AT-AT pilots, Rebel soldiers, and Han Solo\'s team all represent the human capital executing the operation on both sides.',
+      business: 'This is Human Resource Management — recruiting, training, assigning, and coordinating people to execute organizational goals efficiently.',
+      challenge: 'Luke Skywalker\'s innovative use of a cable to bring down an AT-AT shows how human creativity and adaptability can overcome superior force — a core HR insight.'
+    },
+    {
+      id: 'supply', icon: '📦', label: 'Supply Chain\nSystem',
+      x: 100, y: 310, color: '#0EA472',
+      starwars: 'The Rebel Alliance depended on supplies, weapons, and fuel arriving at Echo Base. The Empire\'s supply chain powered its fleet and ground forces throughout the battle.',
+      business: 'Supply chain management in business ensures materials, inventory, and resources reach the right place at the right time — exactly as both sides needed during Hoth.',
+      challenge: 'The Rebels\' limited supplies forced a quick evacuation — demonstrating that supply chain constraints directly determine operational capacity and strategic options.'
+    },
+    {
+      id: 'intel', icon: '🔍', label: 'Intelligence\nSystem',
+      x: 420, y: 310, color: '#F5A623',
+      starwars: 'Imperial probe droids discovered the Rebel base, while Rebel scouts monitored the Empire\'s advance. Intelligence determined the timeline and outcome of the battle.',
+      business: 'Market intelligence, competitive analysis, and data analytics serve the same function in business — understanding the environment before making strategic decisions.',
+      challenge: 'The Rebels detected the probe droid late, giving them limited response time — mirroring how delayed market intelligence can force reactive rather than proactive strategy.'
+    }
   ];
 
-  var barColors = { cost: '#2176FF', speed: '#F5A623', reliability: '#0EA472', capacity: '#0A2D6E', eco: '#7ec8e3' };
-  var container = document.getElementById('transportCards');
-  var costSlider = document.getElementById('costPriority');
-  var speedSlider = document.getElementById('speedPriority');
-  var reliSlider = document.getElementById('reliabilityPriority');
-  var scenarioSelect = document.getElementById('scenarioSelect');
+  var connections = [
+    [0, 1], [0, 2], [0, 3], [0, 4], [1, 3], [1, 4], [2, 3], [2, 4], [3, 4]
+  ];
 
-  function calcScore(m) {
-    var cp = +costSlider.value, sp = +speedSlider.value, rp = +reliSlider.value;
-    return m.data.cost * cp + m.data.speed * sp + m.data.reliability * rp + m.data.capacity + m.data.eco;
-  }
+  var svg = document.getElementById('swMapSvg');
+  var infoDefault = document.getElementById('swInfoDefault');
+  var infoDetail = document.getElementById('swInfoDetail');
 
-  function render() {
-    document.getElementById('costPriorityVal').textContent = costSlider.value;
-    document.getElementById('speedPriorityVal').textContent = speedSlider.value;
-    document.getElementById('reliabilityPriorityVal').textContent = reliSlider.value;
+  // Draw connections
+  connections.forEach(function (pair) {
+    var a = systems[pair[0]], b = systems[pair[1]];
+    var line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', a.x); line.setAttribute('y1', a.y);
+    line.setAttribute('x2', b.x); line.setAttribute('y2', b.y);
+    line.setAttribute('stroke', '#D8E2F0'); line.setAttribute('stroke-width', '2');
+    svg.insertBefore(line, svg.firstChild);
+  });
 
-    var scored = modes.map(function(m, i) { return { idx: i, score: calcScore(m) }; });
-    scored.sort(function(a, b) { return b.score - a.score; });
-    var rankMap = {}; scored.forEach(function(s, r) { rankMap[s.idx] = r + 1; });
+  // Draw nodes
+  systems.forEach(function (sys) {
+    var g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    g.setAttribute('class', 'sw-node');
+    g.setAttribute('data-id', sys.id);
+    g.style.cursor = 'pointer';
 
-    var bestLabels = ['Best for local delivery', 'Best for bulk freight', 'Best for international bulk', 'Best for urgent shipments'];
-    // Update best tags based on ranking
-    var sortedForBest = scored.slice();
-    if (sortedForBest[0]) modes[sortedForBest[0].idx].best = '🥇 Top choice for this scenario';
+    var circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    circle.setAttribute('cx', sys.x); circle.setAttribute('cy', sys.y);
+    circle.setAttribute('r', '40');
+    circle.setAttribute('fill', sys.color);
+    circle.setAttribute('stroke', '#fff'); circle.setAttribute('stroke-width', '3');
 
-    container.innerHTML = '';
-    modes.forEach(function(m, i) {
-      var rank = rankMap[i];
-      var card = document.createElement('div');
-      card.className = 'transport-card' + (rank === 1 ? ' rank-1' : '');
-      var badges = ['🥇 1st', '🥈 2nd', '🥉 3rd', '4th'];
-      card.innerHTML =
-        '<div class="transport-rank-badge">' + badges[rank - 1] + '</div>' +
-        '<div class="transport-icon">' + m.icon + '</div>' +
-        '<h4>' + m.name + '</h4>' +
-        '<div class="transport-score">' + calcScore(m) + '</div>' +
-        '<div class="transport-best">' + (rank === 1 ? '🥇 Top choice for this scenario' : m.best) + '</div>' +
-        '<div class="mini-bars">' +
-          miniBar('Cost', m.data.cost, barColors.cost) +
-          miniBar('Speed', m.data.speed, barColors.speed) +
-          miniBar('Reliability', m.data.reliability, barColors.reliability) +
-          miniBar('Capacity', m.data.capacity, barColors.capacity) +
-          miniBar('Eco Impact', m.data.eco, barColors.eco) +
-        '</div>';
-      container.appendChild(card);
+    var icon = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    icon.setAttribute('x', sys.x); icon.setAttribute('y', sys.y - 6);
+    icon.setAttribute('text-anchor', 'middle'); icon.setAttribute('dominant-baseline', 'middle');
+    icon.setAttribute('font-size', '22'); icon.textContent = sys.icon;
+
+    var lines = sys.label.split('\n');
+    lines.forEach(function (line, li) {
+      var t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      t.setAttribute('x', sys.x); t.setAttribute('y', sys.y + 14 + li * 14);
+      t.setAttribute('text-anchor', 'middle');
+      t.setAttribute('font-size', '10');
+      t.setAttribute('fill', '#fff');
+      t.setAttribute('font-family', 'Poppins, sans-serif');
+      t.setAttribute('font-weight', '600');
+      t.textContent = line;
+      g.appendChild(t);
     });
-  }
 
-  function miniBar(label, val, color) {
-    return '<div class="mini-bar-row"><div class="mini-bar-label">' + label + '</div>' +
-      '<div class="mini-bar-track"><div class="mini-bar-fill" style="width:' + (val * 20) + '%;background:' + color + ';"></div></div></div>';
-  }
+    g.appendChild(circle); g.appendChild(icon);
+    lines.forEach(function (line, li) {
+      var t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      t.setAttribute('x', sys.x); t.setAttribute('y', sys.y + 14 + li * 14);
+      t.setAttribute('text-anchor', 'middle'); t.setAttribute('font-size', '10');
+      t.setAttribute('fill', '#fff'); t.setAttribute('font-family', 'Poppins, sans-serif');
+      t.setAttribute('font-weight', '600'); t.textContent = line;
+      g.appendChild(t);
+    });
 
-  costSlider.addEventListener('input', render);
-  speedSlider.addEventListener('input', render);
-  reliSlider.addEventListener('input', render);
+    svg.appendChild(g);
 
-  scenarioSelect.addEventListener('change', function() {
-    var v = this.value;
-    if (v === 'electronics') { costSlider.value = 3; speedSlider.value = 4; reliSlider.value = 5; }
-    else if (v === 'produce') { costSlider.value = 2; speedSlider.value = 5; reliSlider.value = 4; }
-    else if (v === 'coal') { costSlider.value = 5; speedSlider.value = 1; reliSlider.value = 3; }
-    render();
+    g.addEventListener('click', function () {
+      // Deactivate all
+      document.querySelectorAll('.sw-node circle').forEach(function (c) { c.setAttribute('stroke', '#fff'); c.setAttribute('stroke-width', '3'); });
+      circle.setAttribute('stroke', '#F5A623'); circle.setAttribute('stroke-width', '5');
+
+      infoDefault.style.display = 'none';
+      infoDetail.style.display = 'block';
+      document.getElementById('swInfoIcon').textContent = sys.icon;
+      document.getElementById('swInfoTitle').textContent = sys.label.replace('\n', ' ');
+      document.getElementById('swInfoStarWars').textContent = sys.starwars;
+      document.getElementById('swInfoBusiness').textContent = sys.business;
+      document.getElementById('swInfoChallenge').textContent = sys.challenge;
+    });
   });
-
-  render();
 })();
 
 /* ===================================================================
    DEMO 3 — WAREHOUSE LAYOUT
    =================================================================== */
-(function() {
+(function () {
   var grid = document.getElementById('whGrid');
   var infoPanel = document.getElementById('whInfoPanel');
   var infoTitle = document.getElementById('whInfoTitle');
@@ -279,15 +313,15 @@
   function renderGrid() {
     var layout = currentLayout === 'standard' ? buildStandardLayout() : buildCrossDockLayout();
     grid.innerHTML = '';
-    layout.forEach(function(zone, i) {
+    layout.forEach(function (zone, i) {
       var cell = document.createElement('div');
       cell.className = 'wh-cell ' + zone;
       cell.dataset.zone = zone;
       cell.setAttribute('tabindex', '0');
       cell.setAttribute('role', 'button');
       cell.setAttribute('aria-label', (zoneInfo[zone] ? zoneInfo[zone].name : 'Aisle'));
-      cell.addEventListener('click', function() { showZoneInfo(zone); });
-      cell.addEventListener('keypress', function(e) { if (e.key === 'Enter') showZoneInfo(zone); });
+      cell.addEventListener('click', function () { showZoneInfo(zone); });
+      cell.addEventListener('keypress', function (e) { if (e.key === 'Enter') showZoneInfo(zone); });
       grid.appendChild(cell);
     });
   }
@@ -306,10 +340,10 @@
       '<p style="margin-top:8px;"><strong>💡 Tip:</strong> ' + z.tip + '</p>';
     // Highlight the zone
     var cells = grid.querySelectorAll('.wh-cell');
-    cells.forEach(function(c) { c.style.opacity = c.dataset.zone === zone ? '1' : '0.4'; });
+    cells.forEach(function (c) { c.style.opacity = c.dataset.zone === zone ? '1' : '0.4'; });
   }
 
-  journeyBtn.addEventListener('click', function() {
+  journeyBtn.addEventListener('click', function () {
     // Animate a dot through key positions
     dot.style.display = 'block';
     var container = grid.parentElement;
@@ -339,22 +373,22 @@
     moveToNext();
   });
 
-  resetBtn.addEventListener('click', function() {
+  resetBtn.addEventListener('click', function () {
     dot.style.display = 'none';
     var cells = grid.querySelectorAll('.wh-cell');
-    cells.forEach(function(c) { c.style.opacity = '1'; });
+    cells.forEach(function (c) { c.style.opacity = '1'; });
     infoTitle.textContent = 'Select a Zone';
     infoText.innerHTML = 'Click on any colored zone in the warehouse layout to see details about its function, equipment, and tips.';
   });
 
-  standardBtn.addEventListener('click', function() {
+  standardBtn.addEventListener('click', function () {
     currentLayout = 'standard';
     standardBtn.classList.add('active-layout'); standardBtn.style.background = ''; standardBtn.style.color = ''; standardBtn.style.borderColor = '';
     crossDockBtn.classList.remove('active-layout'); crossDockBtn.style.background = 'var(--color-section-alt)'; crossDockBtn.style.color = 'var(--color-text-body)'; crossDockBtn.style.borderColor = 'var(--color-border)';
     renderGrid();
   });
 
-  crossDockBtn.addEventListener('click', function() {
+  crossDockBtn.addEventListener('click', function () {
     currentLayout = 'crossdock';
     crossDockBtn.classList.add('active-layout'); crossDockBtn.style.background = ''; crossDockBtn.style.color = ''; crossDockBtn.style.borderColor = '';
     standardBtn.classList.remove('active-layout'); standardBtn.style.background = 'var(--color-section-alt)'; standardBtn.style.color = 'var(--color-text-body)'; standardBtn.style.borderColor = 'var(--color-border)';
@@ -367,25 +401,25 @@
 /* ===================================================================
    DEMO 4 — EOQ CALCULATOR
    =================================================================== */
-(function() {
+(function () {
   var dSlider = document.getElementById('eoqDemandSlider');
-  var dInput  = document.getElementById('eoqDemand');
+  var dInput = document.getElementById('eoqDemand');
   var sSlider = document.getElementById('eoqOrderingSlider');
-  var sInput  = document.getElementById('eoqOrdering');
+  var sInput = document.getElementById('eoqOrdering');
   var hSlider = document.getElementById('eoqHoldingSlider');
-  var hInput  = document.getElementById('eoqHolding');
-  var canvas  = document.getElementById('eoqChart');
-  var ctx     = canvas.getContext('2d');
+  var hInput = document.getElementById('eoqHolding');
+  var canvas = document.getElementById('eoqChart');
+  var ctx = canvas.getContext('2d');
 
   function sync(slider, input) {
-    slider.addEventListener('input', function() { input.value = slider.value; calculate(); });
-    input.addEventListener('input', function() { slider.value = input.value; calculate(); });
+    slider.addEventListener('input', function () { input.value = slider.value; calculate(); });
+    input.addEventListener('input', function () { slider.value = input.value; calculate(); });
   }
   sync(dSlider, dInput);
   sync(sSlider, sInput);
   sync(hSlider, hInput);
 
-  window.setEOQPreset = function(d, s, h) {
+  window.setEOQPreset = function (d, s, h) {
     dSlider.value = dInput.value = d;
     sSlider.value = sInput.value = s;
     hSlider.value = hInput.value = h;
@@ -531,7 +565,7 @@
     // Legend
     var lx = pad.left + pw - 180, ly = pad.top + 10;
     ctx.font = '11px Inter, sans-serif';
-    [[' Ordering Cost', '#2176FF'], [' Holding Cost', '#F5A623'], [' Total Cost', '#0A2D6E']].forEach(function(item, idx) {
+    [[' Ordering Cost', '#2176FF'], [' Holding Cost', '#F5A623'], [' Total Cost', '#0A2D6E']].forEach(function (item, idx) {
       ctx.fillStyle = item[1];
       ctx.fillRect(lx, ly + idx * 20, 16, 3);
       ctx.fillStyle = '#3D4E6B';
@@ -544,7 +578,7 @@
 
   // Redraw on resize
   var resizeTimer;
-  window.addEventListener('resize', function() {
+  window.addEventListener('resize', function () {
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(calculate, 200);
   });
@@ -553,7 +587,7 @@
 /* ===================================================================
    DEMO 5 — CARBON FOOTPRINT TOOL
    =================================================================== */
-(function() {
+(function () {
   var weightSlider = document.getElementById('carbonWeight');
   var distSlider = document.getElementById('carbonDist');
   var routeSelect = document.getElementById('carbonRoute');
@@ -588,13 +622,13 @@
 
     var emissions = {};
     var maxEmission = 0;
-    modeKeys.forEach(function(k) {
+    modeKeys.forEach(function (k) {
       emissions[k] = weight * dist * co2Rates[k];
       if (emissions[k] > maxEmission) maxEmission = emissions[k];
     });
 
     barsContainer.innerHTML = '';
-    modeKeys.forEach(function(k, i) {
+    modeKeys.forEach(function (k, i) {
       var em = emissions[k];
       var pct = maxEmission > 0 ? (em / maxEmission) * 100 : 0;
       var trees = Math.ceil(em / 21);
@@ -613,9 +647,9 @@
         '<div class="carbon-mode-label">' + modeIcons[i] + ' ' + modeNames[i] + '</div>' +
         '<div class="carbon-bar-track"><div class="carbon-bar-fill" style="width:' + Math.max(pct, 2) + '%;background:' + colors[i] + ';">' + Math.round(em).toLocaleString() + ' kg CO₂</div></div>' +
         '<div class="carbon-bar-meta">' +
-          '<span>🌳 ' + trees.toLocaleString() + ' trees to offset</span>' +
-          '<span>💰 ~$' + cost + ' | 📅 ' + days + ' days</span>' +
-          '<span>Green Score: <span class="carbon-grade ' + gradeClass + '">' + grade + '</span></span>' +
+        '<span>🌳 ' + trees.toLocaleString() + ' trees to offset</span>' +
+        '<span>💰 ~$' + cost + ' | 📅 ' + days + ' days</span>' +
+        '<span>Green Score: <span class="carbon-grade ' + gradeClass + '">' + grade + '</span></span>' +
         '</div>';
       barsContainer.appendChild(row);
     });
@@ -627,7 +661,7 @@
 
   weightSlider.addEventListener('input', calculate);
   distSlider.addEventListener('input', calculate);
-  routeSelect.addEventListener('change', function() {
+  routeSelect.addEventListener('change', function () {
     if (this.value !== 'custom') {
       distSlider.disabled = true;
     } else {
@@ -637,4 +671,122 @@
   });
 
   calculate();
+})();
+
+/* ===================================================================
+   PRESENTATION SLIDE NAVIGATOR
+   =================================================================== */
+(function () {
+  var slidesData = [
+    {
+      title: 'About Our Company',
+      points: [
+        { icon: '🏢', text: 'Integrated Korea Education (IKE) — an educational consultancy company' },
+        { icon: '📅', text: 'Started professionally in 2024' },
+        { icon: '🎓', text: 'Specialized in Korean higher education' },
+        { icon: '🇧🇩', text: 'Helping Bangladeshi students study in South Korea' },
+        { icon: '📋', text: 'Providing complete admission and visa support' },
+        { icon: '📍', text: 'Offices: Bangladesh (Dhaka) & Korea (Busan)' }
+      ]
+    },
+    {
+      title: 'Our Vision & Future Goals',
+      points: [
+        { icon: '🌟', text: 'Vision: To become a trusted educational consultancy' },
+        { icon: '🤝', text: 'Support students with honesty and transparency' },
+        { icon: '🚀', text: 'Help students build successful international careers' },
+        { icon: '🇰🇷', text: 'Currently focused on South Korea' },
+        { icon: '🌍', text: 'Planning to expand globally in the future' }
+      ]
+    },
+    {
+      title: 'Partner Universities',
+      points: [
+        { icon: '🏫', text: 'Dong-A University (Busan)' },
+        { icon: '🏫', text: 'Kyungsung University (Busan)' },
+        { icon: '🏫', text: 'Busan University of Foreign Studies' },
+        { icon: '🏫', text: 'Sejong University (Seoul)' },
+        { icon: '🏫', text: 'Konkuk University (Seoul)' },
+        { icon: '🏫', text: 'Hansung University — and many more across South Korea' }
+      ]
+    },
+    {
+      title: 'Our 3-Step Process',
+      points: [
+        { icon: '1️⃣', text: 'Step 1 — Counseling: Academic profile, university & program recommendation' },
+        { icon: '2️⃣', text: 'Step 2 — Admission & Visa: Document prep, applications, visa support' },
+        { icon: '3️⃣', text: 'Step 3 — Post Arrival: Airport pickup, accommodation, university registration' },
+        { icon: '📚', text: 'Programs: EAP, KAP, Bachelor\'s, Master\'s, PhD' }
+      ]
+    },
+    {
+      title: 'Student Success',
+      points: [
+        { icon: '🎉', text: 'March 2026 Intake: 50 successful applicants' },
+        { icon: '📍', text: 'Students are now studying in different universities across Korea' },
+        { icon: '💎', text: 'Strength: Personalized support for every student' },
+        { icon: '🏆', text: 'Scholarship assistance programs' },
+        { icon: '🛡️', text: 'Strong student care system — support before and after arrival' }
+      ]
+    },
+    {
+      title: 'Revenue Model',
+      points: [
+        { icon: '💰', text: 'University Commission: $500–$1,000 per student placed' },
+        { icon: '💳', text: 'Student Service Charge: $500–$1,200 per student' },
+        { icon: '📈', text: 'Business Performance: Approximately $50,000 USD last year' },
+        { icon: '🔄', text: 'Dual revenue stream: universities + students' }
+      ]
+    },
+    {
+      title: 'Why Students Trust IKE',
+      points: [
+        { icon: '🇰🇷', text: 'Experienced founders living in Korea — firsthand knowledge' },
+        { icon: '🌐', text: 'Direct support from both Bangladesh & Korea' },
+        { icon: '✅', text: 'Transparent and ethical service' },
+        { icon: '🎓', text: 'Scholarship support available' },
+        { icon: '📋', text: 'Complete admission guidance from start to finish' },
+        { icon: '💪', text: 'Strong student support system throughout the journey' }
+      ]
+    },
+    {
+      title: 'Future Plan',
+      points: [
+        { icon: '🤝', text: 'Increase university partnerships across Korea' },
+        { icon: '🌏', text: 'Recruit more international students' },
+        { icon: '🚀', text: 'Expand globally beyond Korea in the future' },
+        { icon: '🔗', text: 'Build a strong international education network' },
+        { icon: '💡', text: 'Message: "Education can change lives and create global opportunities."' }
+      ]
+    }
+  ];
+
+  var tabs = document.querySelectorAll('.pres-tab');
+  var contentArea = document.getElementById('presSlideContent');
+
+  function renderSlide(idx) {
+    var slide = slidesData[idx];
+    var pointsHTML = slide.points.map(function (p) {
+      return '<div class="pres-slide-point"><span class="pres-slide-point-icon">' + p.icon + '</span><span>' + p.text + '</span></div>';
+    }).join('');
+
+    contentArea.innerHTML =
+      '<div class="pres-slide-inner">' +
+      '<h4>' + slide.title + '</h4>' +
+      '<div class="pres-slide-points">' + pointsHTML + '</div>' +
+      '</div>';
+  }
+
+  tabs.forEach(function (tab, i) {
+    tab.addEventListener('click', function () {
+      tabs.forEach(function (t) { t.classList.remove('active'); });
+      this.classList.add('active');
+      renderSlide(i);
+    });
+  });
+
+  // Render first slide on load
+  if (tabs.length > 0 && contentArea) {
+    renderSlide(0);
+  }
 })();
